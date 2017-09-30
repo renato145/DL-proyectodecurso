@@ -15,14 +15,15 @@ from_vocab_size = 40000 # Tamaño del vocabulario en ingles
 to_vocab_size = 40000 # Tamaño del vocabulario en frances
 data_dir = '/tmp' # Directorio de la data
 train_dir = '/tmp' # Directorio de entrenamiento
+max_train_data_size = 0 # Limite del tamaño de la data de entrenamiento (0: no limite)
+steps_per_checkpoint = 200 # Cada cuantos pasos se guarda un checkpoint
+use_fp16 = False # Usar precision decimal de 16 bits
+
 # Archivos de vocabulario:
 from_train_data = None
 to_train_data = None
 from_dev_data = None
 to_dev_data = None
-max_train_data_size = 0 # Limite del tamaño de la data de entrenamiento (0: no limite)
-steps_per_checkpoint = 200 # Cada cuantos pasos se guarda un checkpoint
-use_fp16 = False # Usar precision decimal de 16 bits
 
 # Duplas de buckets a usar en el preprocesamiento de la data (ingles, frances).
 _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
@@ -179,11 +180,11 @@ def train():
 
 def decode():
   with tf.Session() as sess:
-    # Create model and load parameters.
+    # Crea el modelo y carga los parametros.
     model = create_model(sess, True)
-    model.batch_size = 1  # We decode one sentence at a time.
+    model.batch_size = 1  # Se decodea una palabra a la vez.
 
-    # Load vocabularies.
+    # Carga vocabularios en memoria.
     en_vocab_path = os.path.join(data_dir,
                                  "vocab%d.from" % from_vocab_size)
     fr_vocab_path = os.path.join(data_dir,
@@ -191,14 +192,12 @@ def decode():
     en_vocab, _ = data_utils.initialize_vocabulary(en_vocab_path)
     _, rev_fr_vocab = data_utils.initialize_vocabulary(fr_vocab_path)
 
-    # Decode from standard input.
-    sys.stdout.write("> ")
-    sys.stdout.flush()
-    sentence = sys.stdin.readline()
+    # Lee texto del usuario.
+    sentence = input('> ')
     while sentence:
-      # Get token-ids for the input sentence.
+      # Obtiene el token id de la oracion.
       token_ids = data_utils.sentence_to_token_ids(tf.compat.as_bytes(sentence), en_vocab)
-      # Which bucket does it belong to?
+      # Asigna la oracion a un bucket adecuado.
       bucket_id = len(_buckets) - 1
       for i, bucket in enumerate(_buckets):
         if bucket[0] >= len(token_ids):
@@ -207,42 +206,21 @@ def decode():
       else:
         logging.warning("Sentence truncated: %s", sentence)
 
-      # Get a 1-element batch to feed the sentence to the model.
+      # Crea un batch con la primera palabra.
       encoder_inputs, decoder_inputs, target_weights = model.get_batch(
           {bucket_id: [(token_ids, [])]}, bucket_id)
-      # Get output logits for the sentence.
+      # Obtiene los resultados del modelo (softmax).
       _, _, output_logits = model.step(sess, encoder_inputs, decoder_inputs,
                                        target_weights, bucket_id, True)
-      # This is a greedy decoder - outputs are just argmaxes of output_logits.
+      # Se asigna como output el resultado con mayor valor (argmax).
       outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
-      # If there is an EOS symbol in outputs, cut them at that point.
+      # En caso de un token 'EOS' (end of sentence), se termina la traduccion.
       if data_utils.EOS_ID in outputs:
         outputs = outputs[:outputs.index(data_utils.EOS_ID)]
-      # Print out French sentence corresponding to outputs.
+      # Muestra el resultado final.
       print(" ".join([tf.compat.as_str(rev_fr_vocab[output]) for output in outputs]))
-      print("> ", end="")
       sys.stdout.flush()
-      sentence = sys.stdin.readline()
-
-
-def self_test():
-  """Test the translation model."""
-  with tf.Session() as sess:
-    print("Self-test for neural translation model.")
-    # Create model with vocabularies of 10, 2 small buckets, 2 layers of 32.
-    model = seq2seq_model.Seq2SeqModel(10, 10, [(3, 3), (6, 6)], 32, 2,
-                                       5.0, 32, 0.3, 0.99, num_samples=8)
-    sess.run(tf.global_variables_initializer())
-
-    # Fake data set for both the (3, 3) and (6, 6) bucket.
-    data_set = ([([1, 1], [2, 2]), ([3, 3], [4]), ([5], [6])],
-                [([1, 1, 1, 1, 1], [2, 2, 2, 2, 2]), ([3, 3, 3], [5, 6])])
-    for _ in xrange(5):  # Train the fake model for 5 steps.
-      bucket_id = random.choice([0, 1])
-      encoder_inputs, decoder_inputs, target_weights = model.get_batch(
-          data_set, bucket_id)
-      model.step(sess, encoder_inputs, decoder_inputs, target_weights,
-                 bucket_id, False)
+      sentence = input('> ')
 
 decode = False
 self_test = False
@@ -251,5 +229,6 @@ self_test = False
 self_test()
 ###
 train()
+
 ###
 decode()
