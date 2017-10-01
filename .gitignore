@@ -1,4 +1,6 @@
 .vscode/
+modelo_base/train
+modelo_base/results
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
