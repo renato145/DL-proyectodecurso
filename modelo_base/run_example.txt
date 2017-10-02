@@ -1,2 +1,2 @@
-python translate.py --data_dir results --train_dir train --size 512 --num_layers 2 --batch_size 128 --steps_per_checkpoint 250 --max_train_data_size 5000000
-python translate.py --decode --data_dir results --train_dir train --size 512 --num_layers 2 --batch_size 128
+python translate.py --data_dir results --train_dir train --size 512 --num_layers 2 --batch_size 256 --steps_per_checkpoint 100 --max_train_data_size 6500000
+python translate.py --decode --data_dir results --train_dir train --size 512 --num_layers 2 --batch_size 256

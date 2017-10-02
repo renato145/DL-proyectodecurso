@@ -214,6 +214,10 @@ def train():
         print ("global step %d learning rate %.4f step-time %.2f perplexity "
                "%.2f" % (model.global_step.eval(), model.learning_rate.eval(),
                          step_time, perplexity))
+
+        with open('log/train.txt', 'a') as f:
+          f.writelines('%.6f, %.6f\n' % (loss, perplexity))
+
         # Decrease learning rate if no improvement was seen over last 3 times.
         if len(previous_losses) > 2 and loss > max(previous_losses[-3:]):
           sess.run(model.learning_rate_decay_op)
@@ -234,6 +238,10 @@ def train():
           eval_ppx = math.exp(float(eval_loss)) if eval_loss < 300 else float(
               "inf")
           print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
+          
+          with open('log/test.txt', 'a') as f:
+            f.writelines('%d, %.6f, %.6f\n' % (bucket_id, eval_loss, eval_ppx))
+
         sys.stdout.flush()
 
 
