@@ -1,6 +1,8 @@
 .vscode/
 modelo_base/train
 modelo_base/results
+propuesta/tests.ipynb
+*.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
