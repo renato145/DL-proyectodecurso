@@ -19,11 +19,15 @@ def load_anki_dataset(path):
                     init_token='<sos>', eos_token='<eos>')
 
     with open(path, 'rb') as f:
-        examples = pickle.load(f)
+        loaded = pickle.load(f)
 
-    dataset = data.Dataset(examples, [('en', EN), ('es', ES)])
+    examples_train = loaded['train']
+    examples_test = loaded['test']
 
-    ES.build_vocab(dataset.es)
-    EN.build_vocab(dataset.en)
+    ds_train = data.Dataset(examples_train, [('en', EN), ('es', ES)])
+    ds_test = data.Dataset(examples_test, [('en', EN), ('es', ES)])
 
-    return dataset, ES, EN
+    ES.build_vocab(ds_train.es)
+    EN.build_vocab(ds_train.en)
+
+    return ds_train, ds_test, ES, EN
