@@ -5,6 +5,27 @@ from torch.nn import functional
 from torch.autograd import Variable
 from torchtext import data
 from torchtext import datasets
+import matplotlib.pyplot as plt
+
+def show_attn(attn, example, result):
+    try:
+        cut_result = min([i for i,w in enumerate(result) if w == '<eos>'])
+        result = result[:cut_result+1]
+        attn = attn[:cut_result+1]
+    except:
+        _
+        
+    try:
+        cut_example = min([i for i,w in enumerate(example) if w == '<pad>'])
+        example = example[:cut_example]
+        attn = attn[:, :cut_example]
+    except:
+        _
+        
+    plt.matshow(attn, cmap=plt.cm.binary_r)
+    plt.xticks(range(len(example)), example, rotation=90)
+    plt.yticks(range(len(result)), result)
+    plt.show()
 
 def load_anki_dataset(path):
     spacy_es = spacy.load('es')
@@ -41,5 +62,13 @@ def write_training_log(file, epoch, tf_ratio, train_loss, test_loss):
     if not os.path.exists(file):
         lines += 'epoch,teacher_forcing_ratio,train_loss,test_loss\n'
     lines += f'{epoch},{tf_ratio},{train_loss},{test_loss}\n'
+    with open(file, 'a') as f:
+        f.writelines(lines)
+
+def write_training_loss(file, loss):
+    lines = ''
+    if not os.path.exists(file):
+        lines += 'loss\n'
+    lines += f'{loss}\n'
     with open(file, 'a') as f:
         f.writelines(lines)
